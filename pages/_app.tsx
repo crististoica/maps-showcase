@@ -3,6 +3,7 @@ import type { AppProps } from 'next/app';
 
 import { TNextPageWithLayout, TLayouts, TChildrenProp } from 'types';
 import { Main } from 'layouts';
+import { UIContextProvider } from 'contexts/useUIContext';
 
 type AppPropsWithLayout = AppProps & {
   Component: TNextPageWithLayout;
@@ -19,8 +20,10 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
   const Layout = layouts[layout];
 
   return (
-    <Layout>
-      <Component {...pageProps} />
-    </Layout>
+    <UIContextProvider>
+      <Layout>
+        <Component {...pageProps} />
+      </Layout>
+    </UIContextProvider>
   );
 }
