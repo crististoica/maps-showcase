@@ -19,14 +19,14 @@ const MapboxMap = () => {
   const mapRef = useRef<MapRef>(null);
 
   const interactiveLayerIds = useMemo(() => {
-    const breachAreasIds = breachAreas.features.map(
+    const breachAreasIds = showBreachAreasLayer ? breachAreas.features.map(
       (breachArea) => breachArea.properties.name,
-    );
+    ) : [];
     const vesselsIds = vessels.features.map((vessel) =>
       vessel.properties.IMO.toString(),
     );
     return [...breachAreasIds, ...vesselsIds];
-  }, []);
+  }, [showBreachAreasLayer]);
 
   const handleShowBreachAreasLayer = (e: ChangeEvent<HTMLInputElement>) => {
     setShowBreachAreasLayer(e.target.checked);
@@ -44,8 +44,8 @@ const MapboxMap = () => {
 
   const onLayerClick = (layer: any) => {
     const { features, lngLat } = layer;
-    const breachAreaLayer = features.length > 1 ? features[1] : features[0];
-    const vesselLayer = features.length > 1 ? features[0] : null;
+    const breachAreaLayer = features.find((feature: any) => feature.properties.risk);
+    const vesselLayer = features.find((feature: any) => feature.properties.IMO);
     if (breachAreaLayer && !vesselLayer) {
       setSelectedBreachArea({
         lngLat,
