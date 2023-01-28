@@ -1,37 +1,48 @@
 import { useRef, useState, ChangeEvent, useMemo } from 'react';
+
 import Map, { MapRef, Popup, Source, Layer } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { AiOutlineExpand } from 'react-icons/ai';
+import * as turf from '@turf/turf';
 
 import { breachAreas } from '@data/breachAreas';
 import { vessels } from '@data/vessels';
+import { marineRoutes } from '@data/marineRouts';
 import { Controls, VesselPopupContent } from './components';
 import { MAP_STYLES, BREACH_AREA_RISK_COLORS, COORDINATES } from './constants';
+import { useBreachAreas } from './useBreachAreas';
 
 type TLocation = 'singapore' | 'blackSea' | 'uk';
 
 const MapboxMap = () => {
-  const [selectedBreachArea, setSelectedBreachArea] = useState<any>(null);
-  const [showBreachAreasLayer, setShowBreachAreasLayer] = useState(true);
   const [selectVesselLayer, setSelectedVesselLayer] = useState<any>(null);
   const [currentLocation, setCurrentLocation] =
     useState<TLocation>('singapore');
   const [mapStyle, setMapStyle] = useState(MAP_STYLES.brown);
+  const [fullScreen, setFullScrenn] = useState(false);
+  const [intersectingPolygonNames, setIntersectingPolygonNames] = useState<
+    string[]
+  >([]);
+
+  const {
+    showBreachAreasLayer,
+    selectedBreachArea,
+    handleShowBreachAreasLayer,
+    handleSetSelectedBreachArea: setSelectedBreachArea,
+    hoveredBreachAreaName,
+    handleSetHoveredBreachAreaName,
+  } = useBreachAreas();
   const mapRef = useRef<MapRef>(null);
 
   const interactiveLayerIds = useMemo(() => {
-    const breachAreasIds = showBreachAreasLayer ? breachAreas.features.map(
-      (breachArea) => breachArea.properties.name,
-    ) : [];
+    const breachAreasIds = showBreachAreasLayer
+      ? breachAreas.features.map((breachArea) => breachArea.properties.name)
+      : [];
     const vesselsIds = vessels.features.map((vessel) =>
       vessel.properties.IMO.toString(),
     );
     return [...breachAreasIds, ...vesselsIds];
   }, [showBreachAreasLayer]);
-
-  const handleShowBreachAreasLayer = (e: ChangeEvent<HTMLInputElement>) => {
-    setShowBreachAreasLayer(e.target.checked);
-    setSelectedBreachArea(null);
-  };
 
   const handleLocationChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name: location } = e.target;
@@ -44,7 +55,9 @@ const MapboxMap = () => {
 
   const onLayerClick = (layer: any) => {
     const { features, lngLat } = layer;
-    const breachAreaLayer = features.find((feature: any) => feature.properties.risk);
+    const breachAreaLayer = features.find(
+      (feature: any) => feature.properties.risk,
+    );
     const vesselLayer = features.find((feature: any) => feature.properties.IMO);
     if (breachAreaLayer && !vesselLayer) {
       setSelectedBreachArea({
@@ -88,8 +101,37 @@ const MapboxMap = () => {
     onMapLoad();
   };
 
+  const handleIntersectingPolygonsNames = () => {
+    const polygonsNames = [];
+    const line = turf.lineString(marineRoutes.features[0].geometry.coordinates);
+
+    for (const feature of breachAreas.features) {
+      const polygon = turf.polygon(feature.geometry.coordinates);
+      const intersections = turf.lineIntersect(line, polygon);
+
+      if (intersections.features.length > 0) {
+        polygonsNames.push(feature.properties.name);
+      }
+    }
+
+    setIntersectingPolygonNames(polygonsNames);
+  };
+
   return (
-    <div className="w-full h-full">
+    <div
+      className={`w-full h-full ${
+        fullScreen ? 'fixed top-0 left-0 z-50' : 'relative'
+      }`}
+    >
+      <button
+        onClick={() => setFullScrenn(!fullScreen)}
+        className="absolute top-2 right-2 border-red-700 z-50 text-xl bg-gray-100 opacity-80 p-2"
+      >
+        <AiOutlineExpand />
+      </button>
+      <button onClick={handleIntersectingPolygonsNames}>
+        Get Intersecting Polygons
+      </button>
       <Controls
         currentLocation={currentLocation}
         handleLocationChange={handleLocationChange}
@@ -97,6 +139,10 @@ const MapboxMap = () => {
         mapStyle={mapStyle}
         handleMapStyleChange={handleMapStyleChange}
         showBreachAreasLayer={showBreachAreasLayer}
+        breachAreas={breachAreas.features.map(
+          (breachArea) => breachArea.properties,
+        )}
+        handleSetHoveredBreachAreaName={handleSetHoveredBreachAreaName}
       />
       <Map
         ref={mapRef}
@@ -124,11 +170,14 @@ const MapboxMap = () => {
                 id={breachArea.properties.name}
                 type="fill"
                 paint={{
-                  'fill-color':
-                    BREACH_AREA_RISK_COLORS[
-                      breachArea.properties
-                        .risk as keyof typeof BREACH_AREA_RISK_COLORS
-                    ].fill,
+                  'fill-color': intersectingPolygonNames.includes(
+                    breachArea.properties.name,
+                  )
+                    ? 'green'
+                    : BREACH_AREA_RISK_COLORS[
+                        breachArea.properties
+                          .risk as keyof typeof BREACH_AREA_RISK_COLORS
+                      ].fill,
                   'fill-opacity': 0.6,
                   'fill-outline-color':
                     BREACH_AREA_RISK_COLORS[
@@ -166,6 +215,19 @@ const MapboxMap = () => {
             />
           </Source>
         ))}
+        <Source type="geojson" data={marineRoutes as any}>
+          <Layer
+            type="line"
+            layout={{
+              'line-join': 'round',
+              'line-cap': 'round',
+            }}
+            paint={{
+              'line-color': 'rgba(40,100, 230, 0.4)',
+              'line-width': 3,
+            }}
+          />
+        </Source>
         {selectedBreachArea && (
           <Popup
             anchor="bottom"

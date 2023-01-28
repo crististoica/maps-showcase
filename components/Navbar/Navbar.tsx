@@ -28,7 +28,7 @@ const Navbar = () => {
   }, [router.asPath]);
 
   return (
-    <nav className="relative flex flex-wrap items-center justify-between px-2 py-3 bg-cyan-700 z-50">
+    <nav className="relative flex flex-wrap items-center justify-between px-2 py-3 bg-cyan-700 z-30">
       <button onClick={toggleSidePanel} className="absolute lg:left-5 top-5">
         <PanelToggleIcon color="white" />
       </button>

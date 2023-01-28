@@ -7,11 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "vercel": "vercel"
+    "vercel": "vercel",
+    "vercel-prod": "vercel --prod"
   },
   "dependencies": {
     "@arcgis/core": "^4.25.5",
     "@next/font": "13.1.1",
+    "@turf/turf": "^6.5.0",
     "@types/node": "18.11.18",
     "@types/react": "18.0.26",
     "@types/react-dom": "18.0.10",

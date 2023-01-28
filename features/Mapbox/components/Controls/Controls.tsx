@@ -1,7 +1,12 @@
 import { ChangeEvent } from 'react';
 
 import { SideContent, Divider } from '@/components';
-import { MAP_STYLES } from 'features/Mapbox/constants';
+import { MAP_STYLES, BREACH_AREA_RISK_COLORS } from 'features/Mapbox/constants';
+
+type TBreachAreaProperties = {
+  name: string;
+  risk: string;
+};
 
 type TControls = {
   mapStyle: string;
@@ -10,6 +15,8 @@ type TControls = {
   currentLocation: string;
   handleLocationChange: (e: ChangeEvent<HTMLInputElement>) => void;
   handleMapStyleChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  breachAreas: TBreachAreaProperties[];
+  handleSetHoveredBreachAreaName: (name: string) => void;
 };
 
 const Controls = (props: TControls) => {
@@ -19,8 +26,18 @@ const Controls = (props: TControls) => {
     handleShowBreachAreasLayer,
     currentLocation,
     handleLocationChange,
-    handleMapStyleChange
+    handleMapStyleChange,
+    breachAreas,
+    handleSetHoveredBreachAreaName
   } = props;
+
+  const handleBreachAreaHover = (breachArea: TBreachAreaProperties) => {
+    handleSetHoveredBreachAreaName(breachArea.name);
+  };
+
+  const handleBreachAreaMouseLeave = (breachArea: TBreachAreaProperties) => {
+    handleSetHoveredBreachAreaName('');
+  };
 
   return (
     <SideContent>
@@ -104,6 +121,30 @@ const Controls = (props: TControls) => {
             />
             United Kingdom
           </label>
+        </div>
+        <Divider />
+        <h4 className="text-xl underline">Breach Areas</h4>
+        <div>
+          {breachAreas.map((breachArea) => (
+            <div
+              key={breachArea.name}
+              className="flex w-full justify-between p-3 border-b-2"
+              onMouseEnter={() => handleBreachAreaHover(breachArea)}
+              onMouseLeave={() => handleBreachAreaMouseLeave(breachArea)}
+            >
+              <p>{breachArea.name}</p>
+              <p
+                style={{
+                  color:
+                    BREACH_AREA_RISK_COLORS[
+                      breachArea.risk as keyof typeof BREACH_AREA_RISK_COLORS
+                    ].fill,
+                }}
+              >
+                {breachArea.risk}
+              </p>
+            </div>
+          ))}
         </div>
       </>
     </SideContent>
